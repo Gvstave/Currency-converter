@@ -1,9 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+
     const api_key = '725eac908b66401788061b28123ae584';
     const url = `https://openexchangerates.org/api/latest.json?app_id=${api_key}`;
 
     const resultHolder = document.getElementById('result-holder');
-
+    const amount = document.getElementById('amount');
     const fromOptions = document.getElementById('from-options');
     const toOptions = document.getElementById('to-options');
     const fromOptionsList = document.getElementById('from-options-list');
@@ -14,6 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Default currencies
     const defaultFromCurrency = 'USD';
     const defaultToCurrency = 'ZMW';
+
+    /** 
+     *This function is used to derive the flag country code from the currency code.
+     *It extracts the first two letters of the currency code to match the flag code.
+    */
+    const setFlag = (getCurrency) => {
+        return getCurrency.split('').slice(0, 2).join('');
+    };
 
     async function fetchData() {
         try {
@@ -39,13 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Set flag images for the "From" and "To" currencies based on the currency code
                 if (currency === defaultFromCurrency) {
-                    const setCurrency = currency.split('').slice(0, 2).join('');
-                    fromImage.setAttribute('src', `https://flagsapi.com/${setCurrency}/flat/24.png`);
+                    fromImage.setAttribute('src', `https://flagsapi.com/${setFlag(currency)}/flat/24.png`);
                 }
 
                 if (currency === defaultToCurrency) {
-                    const setCurrency = currency.split('').slice(0, 2).join('');
-                    toImage.setAttribute('src', `https://flagsapi.com/${setCurrency}/flat/24.png`);
+                    toImage.setAttribute('src', `https://flagsapi.com/${setFlag(currency)}/flat/24.png`);
                 }
             });
 
@@ -57,32 +64,36 @@ document.addEventListener('DOMContentLoaded', () => {
             resultHolder.textContent = error.message;
         }
     }
-    
+
     // Timeout variable is used to delay the output of the conversion to avoid unnecessary fetch requests during user input
     let timeout;
-    const amountInput = document.getElementById('amount');
 
     async function runConversion() {
         clearTimeout(timeout);
-        const amount = amountInput.value;
+        let amountOption = parseFloat(amount.value);
+
         const fromCurrency = fromOptions.value;
         const toCurrency = toOptions.value;
 
         const timeStamp = document.getElementById('time-stamp');
         const date = new Date();
 
+        if (!amountOption || isNaN(amountOption)) {
+            amountOption = 0;
+        }
         timeout = setTimeout(async () => {
+
             try {
-                const response = await fetch(url); 
+                const response = await fetch(url);
                 const data = await response.json();
 
                 if (!data.rates) throw new Error('Rates data is not available');
 
                 const conversionRateFrom = data.rates[fromCurrency];
                 const conversionRateTo = data.rates[toCurrency];
-                const result = (amount * conversionRateTo) / conversionRateFrom;
+                const result = (amountOption * conversionRateTo) / conversionRateFrom;
 
-                resultHolder.textContent = `${amount} ${fromCurrency} = ${result.toFixed(2)} ${toCurrency}`;
+                resultHolder.textContent = `${amountOption} ${fromCurrency} = ${result.toFixed(2)} ${toCurrency}`;
                 timeStamp.textContent = 'Conversion Time: ' + date;
             } catch (error) {
                 resultHolder.textContent = error.message;
@@ -91,19 +102,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // EventListeners to trigger conversion when their input in the input fields
-    amountInput.addEventListener('input', runConversion);
+    amount.addEventListener('input', runConversion);
 
     fromOptions.addEventListener('input', () => {
-        const selectedCurrency = fromOptions.value;
-        const setCurrency = selectedCurrency.split('').slice(0, 2).join('');
-        fromImage.setAttribute('src', `https://flagsapi.com/${setCurrency}/flat/24.png`);
-        runConversion();  
+        fromImage.setAttribute('src', `https://flagsapi.com/${setFlag(fromOptions.value)}/flat/24.png`);
+        runConversion();
     });
 
     toOptions.addEventListener('input', () => {
-        const selectedCurrency = toOptions.value;
-        const setCurrency = selectedCurrency.split('').slice(0, 2).join('');
-        toImage.setAttribute('src', `https://flagsapi.com/${setCurrency}/flat/24.png`);
+        toImage.setAttribute('src', `https://flagsapi.com/${setFlag(toOptions.value)}/flat/24.png`);
         runConversion();
     });
 
@@ -111,5 +118,5 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchData();
 
     // Load initial input values when the page loads
-    runConversion()
+    runConversion();
 });
